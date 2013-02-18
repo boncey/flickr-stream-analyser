@@ -59,24 +59,32 @@ def get_location(person)
   location
 end
 
-def is_londoner(person, location)
-  photoset_matches = false
+def is_londoner(person)
   london_words = %w{londinium london richmond croydon}
 
-  profile = london_words.any? {|word| location.downcase.include?(word)}
+  # Check profile location
+  location = get_location(person)
+  accepted = london_words.any? {|word| location.downcase.include?(word)}
 
-  if (!profile)
+  # Check photoset titles
+  if (!accepted)
     photosets = flickr.photosets.getList :user_id => person.nsid
     photosets.each do |ps|
       if (london_words.any? {|word| ps.title.downcase.include?(word)})
-        $stderr.puts "Photoset #{ps.title} is a London Photoset"
-        photoset_matches = true
+        accepted = true
         break
       end
     end
   end
 
-  profile || photoset_matches
+  # Check tags
+  if (!accepted)
+    photos = flickr.photos.search :user_id => person.nsid, :tags => london_words.join(", ")
+    $stderr.puts "Found #{photos.size} photos with london tags for user #{person.username}"
+    accepted = photos.size >= 15
+  end
+
+  accepted
 end
 
 def get_londoners(nsids)
@@ -85,12 +93,11 @@ def get_londoners(nsids)
   nsids.each do |nsid|
     begin
       person = flickr.people.getInfo :user_id => nsid
-      location = get_location(person)
-      if (is_londoner(person, location))
-        $stderr.puts "username #{person.username} (#{nsid}) with location '#{location}' is a Londoner"
+      if (is_londoner(person))
+        $stderr.puts "username #{person.username} (#{nsid}) is a Londoner"
         londoners << nsid
       else
-        $stderr.puts "username #{person.username} (#{nsid}) with location '#{location}' is not a Londoner"
+        $stderr.puts "username #{person.username} (#{nsid}) is not a Londoner"
       end
     rescue => e
       $stderr.puts "Error fetching details for #{nsid}: #{e}"
