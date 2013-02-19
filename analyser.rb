@@ -17,13 +17,11 @@ def get_nsids(doc)
 end
 
 def is_inactive(nsid)
-  year_ago = Time.now - (60 * 60 * 24 * 365)
-  photos = flickr.people.getPublicPhotos :user_id => nsid, :per_page => 5, :extras => 'date_upload'
+  photos = flickr.people.getPublicPhotos :user_id => nsid, :per_page => 5
+  $stderr.puts "User #{nsid} has at least #{photos.to_a.size} photos"
 
-  if !photos.to_a.empty?
-    photo = photos[0]
-    uploaded = Time.at(photo.dateupload.to_i)
-    inactive = uploaded < year_ago
+  if photos.to_a.empty?
+    inactive = true
   end
 
   inactive
@@ -128,7 +126,7 @@ doc = Nokogiri::HTML(File.open(filename))
 
 nsids = get_nsids(doc)
 
-#puts to_js_arr("leavers", get_leavers(nsids))
-puts to_js_arr("londoners", get_londoners(nsids))
+puts to_js_arr("leavers", get_leavers(nsids))
+#puts to_js_arr("londoners", get_londoners(nsids))
 
 
